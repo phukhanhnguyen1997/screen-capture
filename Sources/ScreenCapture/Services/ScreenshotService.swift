@@ -29,10 +29,22 @@ enum ScreenshotService {
         guard CGImageDestinationFinalize(destination) else { throw CocoaError(.fileWriteUnknown) }
     }
 
+    /// PNG data for the clipboard. `NSImage` alone would put uncompressed TIFF there, which is huge and
+    /// makes web apps (e.g. Google Chat) show a low-res preview until zoomed.
+    nonisolated static func pngData(_ image: CGImage) -> Data? {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(destination, image, nil)
+        return CGImageDestinationFinalize(destination) ? data as Data : nil
+    }
+
     @MainActor
     static func copyToPasteboard(_ image: CGImage) {
-        let nsImage = NSImage(cgImage: image, size: .zero)
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.writeObjects([nsImage])
+        if let png = pngData(image) {
+            NSPasteboard.general.setData(png, forType: .png)
+        } else {
+            NSPasteboard.general.writeObjects([NSImage(cgImage: image, size: .zero)])
+        }
     }
 }

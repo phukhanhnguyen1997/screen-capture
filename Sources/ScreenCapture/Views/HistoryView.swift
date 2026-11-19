@@ -152,7 +152,10 @@ struct HistoryView: View {
 func copy(_ item: CaptureItem) {
     NSPasteboard.general.clearContents()
     if item.kind == .screenshot, let image = NSImage(contentsOf: item.url) {
-        NSPasteboard.general.writeObjects([item.url as NSURL, image])
+        NSPasteboard.general.writeObjects([item.url as NSURL])
+        if let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil), let png = ScreenshotService.pngData(cg) {
+            NSPasteboard.general.setData(png, forType: .png)
+        }
     } else {
         NSPasteboard.general.writeObjects([item.url as NSURL])
     }
